@@ -1,0 +1,37 @@
+name: Update Noon 3C Data
+
+on:
+  schedule:
+    # 每天凌晨3点(北京时间11点)自动运行
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests pandas beautifulsoup4
+      
+      - name: Run scraper
+        env:
+          APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+        run: |
+          python scraper.py
+      
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add data/noon_3c_data.csv
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: Noon 3C data $(date +'%Y-%m-%d %H:%M')" && git push)
